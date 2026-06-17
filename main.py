@@ -41,6 +41,57 @@ llm = ChatGoogleGenerativeAI(
 )
 
 
+def validate_sql(query):
+    """
+    Validate generated SQL before execution.
+    """
+
+    if not query or not query.strip():
+        return {
+            "valid": False,
+            "message": "Empty query generated.",
+            "query": query
+        }
+
+    query = query.strip().rstrip(";")
+
+    # Allow only SELECT queries
+    if not query.upper().startswith("SELECT"):
+        return {
+            "valid": False,
+            "message": "Only SELECT statements are allowed.",
+            "query": query
+        }
+
+    # Block dangerous keywords
+    dangerous_keywords = [
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "DROP",
+        "ALTER",
+        "TRUNCATE",
+        "CREATE",
+        "REPLACE"
+    ]
+
+    query_upper = query.upper()
+
+    for keyword in dangerous_keywords:
+        if keyword in query_upper:
+            return {
+                "valid": False,
+                "message": f"Dangerous SQL operation detected: {keyword}",
+                "query": query
+            }
+
+    return {
+        "valid": True,
+        "message": "Query is valid"
+    }
+
+
+
 
 #create Prompt tremplate - SQL GENERATION PROMPT
 
@@ -84,15 +135,24 @@ def run_query(query):
 
 
 
-query = sql_chain.invoke({
-    "question": "What is the average unit price?"
-})
+# query = sql_chain.invoke({
+#     "question": "what is the total line total for geiss company"
+# })
 
-print("SQL:")
-print(query)
+# validation = validate_sql(query)
 
-print("\nResult:")
-print(run_query(query))
+# if not validation["valid"]:
+#     print(f"Validation Failed: {validation['message']}")
+#     print("\nGenerated SQL:")
+#     print(validation["query"])
+# else:
+#     result = run_query(query)
+
+# print("SQL:")
+# print(query)
+
+# print("\nResult:")
+# print(run_query(query))
 
 
 #answer prompt
@@ -122,19 +182,37 @@ answer_chain = (
     | StrOutputParser()
 )
 
-question = "What is the average unit price?"
+question = "DROP TABLE customers"
 
-query = sql_chain.invoke({
-    "question": question
-})
+# query = sql_chain.invoke({
+#     "question": question
+# })
+query = ""
 
-result = run_query(query)
+validation = validate_sql(query)
 
-answer = answer_chain.invoke({
-    "question": question,
-    "query": query,
-    "result": result
-})
+if not validation["valid"]:
 
-print(answer)
+    print(f"Validation Failed: {validation['message']}")
 
+    print("\nGenerated SQL:")
+    print(validation["query"])
+
+else:
+
+    result = run_query(query)
+
+    answer = answer_chain.invoke({
+        "question": question,
+        "query": query,
+        "result": result
+    })
+
+    print("\nGenerated SQL:")
+    print(query)
+
+    print("\nDatabase Result:")
+    print(result)
+
+    print("\nFinal Answer:")
+    print(answer)
