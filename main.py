@@ -1,7 +1,6 @@
 from langchain_community.utilities import SQLDatabase
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_classic.chains import create_sql_query_chain
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from urllib.parse import quote_plus
@@ -22,10 +21,7 @@ mysql_uri = f"mysql+pymysql://{username}:{password}@{host}:{port}/{database_sche
 
 db = SQLDatabase.from_uri(mysql_uri,sample_rows_in_table_info = 2)
 
-load_dotenv()
 
-
-# print(db.get_table_info())
 
 
 #get the schema of database
@@ -35,10 +31,86 @@ def get_schema(db):
     return schema
 
 
+def get_schema_metadata():
+    schema_metadata = {}
+    for table_name, table in db._metadata.tables.items():
+        schema_metadata[table_name] = [
+            column.name
+            for column in table.columns
+        ]
+    return schema_metadata
+
+
+
+def validate_tables(query):
+    schema_metadata = get_schema_metadata()
+    valid_tables = set(schema_metadata.keys())
+    query_lower = query.lower()
+    detected_tables = []
+
+    for table in valid_tables:
+        if table.lower() in query_lower:
+            detected_tables.append(table)
+    if not detected_tables:
+        return {
+            "valid": False,
+            "message": "No valid table found in query."
+        }
+    return {
+        "valid": True,
+        "tables": detected_tables
+    }
+
+
+def validate_columns(query):
+    schema_metadata = get_schema_metadata()
+    query_lower = query.lower()
+    if "select" not in query_lower or "from" not in query_lower:
+        return {
+            "valid": False,
+            "message": "Unable to parse query."
+        }
+    select_part = query.split("FROM")[0]
+    columns = (
+        select_part
+        .replace("SELECT", "")
+        .split(",")
+    )
+    columns = [
+        column.strip()
+        for column in columns
+    ]
+    for table, table_columns in schema_metadata.items():
+        if table.lower() in query_lower:
+            invalid_columns = []
+            for column in columns:
+
+                column = column.strip()
+
+                if column == "*":
+                    continue
+
+                # Skip SQL functions
+                if "(" in column or ")" in column:
+                    continue
+
+                if column not in table_columns:
+                    invalid_columns.append(column)
+            if invalid_columns:
+                return {
+                    "valid": False,
+                    "message": f"Invalid columns: {invalid_columns}"
+                }
+    return {
+        "valid": True
+    }
+
+
 llm = ChatGoogleGenerativeAI(
     model = "models/gemini-3.1-flash-lite",
     api_key = os.getenv("GOOGLE_API_KEY")
 )
+
 
 
 def validate_sql(query):
@@ -84,11 +156,28 @@ def validate_sql(query):
                 "message": f"Dangerous SQL operation detected: {keyword}",
                 "query": query
             }
+        
+    # TABLE VALIDATION
+
+    table_validation = validate_tables(query)
+    if not table_validation["valid"]:
+        return table_validation
+
+    # COLUMN VALIDATION
+
+    column_validation = validate_columns(query)
+    if not column_validation["valid"]:
+        return column_validation
+
 
     return {
         "valid": True,
         "message": "Query is valid"
     }
+
+    
+    
+
 
 
 
@@ -134,27 +223,6 @@ def run_query(query):
     return db.run(query)
 
 
-
-# query = sql_chain.invoke({
-#     "question": "what is the total line total for geiss company"
-# })
-
-# validation = validate_sql(query)
-
-# if not validation["valid"]:
-#     print(f"Validation Failed: {validation['message']}")
-#     print("\nGenerated SQL:")
-#     print(validation["query"])
-# else:
-#     result = run_query(query)
-
-# print("SQL:")
-# print(query)
-
-# print("\nResult:")
-# print(run_query(query))
-
-
 #answer prompt
 answer_prompt = ChatPromptTemplate.from_template(
     """
@@ -174,6 +242,7 @@ answer_prompt = ChatPromptTemplate.from_template(
     """
 )
 
+
 #ANSWER CHAIN
 
 answer_chain = (
@@ -182,12 +251,12 @@ answer_chain = (
     | StrOutputParser()
 )
 
-question = "DROP TABLE customers"
+question = "what is the total income for Eire Corp"
 
-# query = sql_chain.invoke({
-#     "question": question
-# })
-query = ""
+query = sql_chain.invoke({
+    "question": question
+})
+
 
 validation = validate_sql(query)
 
@@ -196,7 +265,11 @@ if not validation["valid"]:
     print(f"Validation Failed: {validation['message']}")
 
     print("\nGenerated SQL:")
-    print(validation["query"])
+
+    if "query" in validation:
+        print(validation["query"])
+    else:
+        print(query)
 
 else:
 
@@ -216,3 +289,4 @@ else:
 
     print("\nFinal Answer:")
     print(answer)
+
