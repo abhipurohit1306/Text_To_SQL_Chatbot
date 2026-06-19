@@ -242,6 +242,42 @@ answer_prompt = ChatPromptTemplate.from_template(
     """
 )
 
+# SQL REPAIR PROMPT
+
+repair_prompt = ChatPromptTemplate.from_template(
+    """
+    You are an expert MySQL developer.
+
+    The SQL query below failed validation.
+
+    Database Schema:
+    {schema}
+
+    User Question:
+    {question}
+
+    Invalid SQL:
+    {query}
+
+    Validation Error:
+    {error}
+
+    Fix the SQL query.
+
+    Rules:
+    1. Return ONLY SQL.
+    2. No markdown.
+    3. No explanations.
+    4. No code fences.
+    5. Single line only.
+
+    Correct SQL:
+    """
+)
+
+
+
+
 
 #ANSWER CHAIN
 
@@ -251,7 +287,15 @@ answer_chain = (
     | StrOutputParser()
 )
 
-question = "what is the total income for Eire Corp"
+#repair chain
+
+repair_chain = (
+    repair_prompt
+    | llm
+    | StrOutputParser()
+)
+
+question = "show me revenue of Geiss Company"
 
 query = sql_chain.invoke({
     "question": question
@@ -262,31 +306,54 @@ validation = validate_sql(query)
 
 if not validation["valid"]:
 
-    print(f"Validation Failed: {validation['message']}")
+    print(f"\nValidation Failed: {validation['message']}")
 
-    print("\nGenerated SQL:")
+    print("\nAttempting SQL Repair...")
 
-    if "query" in validation:
-        print(validation["query"])
+    repaired_query = repair_chain.invoke(
+        {
+            "schema": get_schema(db),
+            "question": question,
+            "query": query,
+            "error": validation["message"]
+        }
+    )
+
+    print("\nRepaired SQL:")
+    print(repaired_query)
+
+    repaired_validation = validate_sql(repaired_query)
+
+    if repaired_validation["valid"]:
+
+        print("\nRepair Successful!")
+
+        query = repaired_query
+
     else:
-        print(query)
 
-else:
+        print("\nRepair Failed")
 
-    result = run_query(query)
+        print(repaired_validation["message"])
 
-    answer = answer_chain.invoke({
+        exit()
+
+
+
+result = run_query(query)
+answer = answer_chain.invoke(
+    {
         "question": question,
         "query": query,
         "result": result
-    })
+    }
+)
 
-    print("\nGenerated SQL:")
-    print(query)
+print("\nGenerated SQL:")
+print(query)
 
-    print("\nDatabase Result:")
-    print(result)
+print("\nDatabase Result:")
+print(result)
 
-    print("\nFinal Answer:")
-    print(answer)
-
+print("\nFinal Answer:")
+print(answer)
