@@ -21,6 +21,8 @@ mysql_uri = f"mysql+pymysql://{username}:{password}@{host}:{port}/{database_sche
 
 db = SQLDatabase.from_uri(mysql_uri,sample_rows_in_table_info = 2)
 
+chat_history = []
+
 
 
 
@@ -276,6 +278,24 @@ repair_prompt = ChatPromptTemplate.from_template(
 )
 
 
+#chat history prompt
+
+rewrite_prompt = ChatPromptTemplate.from_template(
+    """
+    You are a conversation assistant.
+
+    Chat History:
+    {chat_history}
+
+    Current Question:
+    {question}
+
+    Rewrite the current question into a complete standalone question.
+
+    Return ONLY the rewritten question.
+    """
+)
+
 
 
 
@@ -295,65 +315,96 @@ repair_chain = (
     | StrOutputParser()
 )
 
-question = "show me revenue of Geiss Company"
+#rewrite chain
+rewrite_chain = (
+    rewrite_prompt
+    | llm
+    | StrOutputParser()
+)
 
-query = sql_chain.invoke({
-    "question": question
-})
-
-
-validation = validate_sql(query)
-
-if not validation["valid"]:
-
-    print(f"\nValidation Failed: {validation['message']}")
-
-    print("\nAttempting SQL Repair...")
-
-    repaired_query = repair_chain.invoke(
+while True:
+    question = input("\nAsk a question: ")
+    if question.lower() in ["exit", "quit", "bye"]:
+        print("Goodbye!")
+        break
+    standalone_question = rewrite_chain.invoke(
         {
-            "schema": get_schema(db),
-            "question": question,
-            "query": query,
-            "error": validation["message"]
+            "chat_history": chat_history,
+            "question": question
         }
     )
 
-    print("\nRepaired SQL:")
-    print(repaired_query)
-
-    repaired_validation = validate_sql(repaired_query)
-
-    if repaired_validation["valid"]:
-
-        print("\nRepair Successful!")
-
-        query = repaired_query
-
-    else:
-
-        print("\nRepair Failed")
-
-        print(repaired_validation["message"])
-
-        exit()
+    print("\nStandalone Question:")
+    print(standalone_question)
 
 
 
-result = run_query(query)
-answer = answer_chain.invoke(
-    {
-        "question": question,
-        "query": query,
-        "result": result
-    }
-)
+    query = sql_chain.invoke({
+        "question": standalone_question
+    })
 
-print("\nGenerated SQL:")
-print(query)
 
-print("\nDatabase Result:")
-print(result)
+    validation = validate_sql(query)
 
-print("\nFinal Answer:")
-print(answer)
+    if not validation["valid"]:
+
+        print(f"\nValidation Failed: {validation['message']}")
+
+        print("\nAttempting SQL Repair...")
+
+        repaired_query = repair_chain.invoke(
+            {
+                "schema": get_schema(db),
+                "question": standalone_question,
+                "query": query,
+                "error": validation["message"]
+            }
+        )
+
+        print("\nRepaired SQL:")
+        print(repaired_query)
+
+        repaired_validation = validate_sql(repaired_query)
+
+        if repaired_validation["valid"]:
+
+            print("\nRepair Successful!")
+
+            query = repaired_query
+
+        else:
+
+            print("\nRepair Failed")
+
+            print(repaired_validation["message"])
+
+            exit()
+
+
+
+    result = run_query(query)
+    answer = answer_chain.invoke(
+        {
+            "question": standalone_question,
+            "query": query,
+            "result": result
+        }
+    )
+
+    chat_history.append(
+        {
+            "question": question,
+            "answer": answer
+        }
+    )
+
+    print("\nGenerated SQL:")
+    print(query)
+
+    print("\nDatabase Result:")
+    print(result)
+
+    print("\nFinal Answer:")
+    print(answer)
+
+
