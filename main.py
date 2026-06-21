@@ -15,6 +15,7 @@ while True:
     question = input("\nAsk a question: ")
 
     if question.lower() in ["bye", "quit", "exit"]:
+        print("\nGoodbye!")
         break
 
     answer = process_question(question)
