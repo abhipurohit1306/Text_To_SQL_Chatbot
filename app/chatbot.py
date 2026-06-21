@@ -87,4 +87,8 @@ def process_question(question):
     print(result)
 
     print("\nFinal Answer:")
-    return(answer)
+    return {
+        "query": query,
+        "result": result,
+        "answer": answer
+    }
