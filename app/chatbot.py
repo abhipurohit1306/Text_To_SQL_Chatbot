@@ -80,13 +80,6 @@ def process_question(question):
         }
     )
 
-    print("\nGenerated SQL:")
-    print(query)
-
-    print("\nDatabase Result:")
-    print(result)
-
-    print("\nFinal Answer:")
     return {
         "query": query,
         "result": result,
