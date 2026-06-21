@@ -8,8 +8,20 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 for message in st.session_state.messages:
+
     with st.chat_message(message["role"]):
+
         st.write(message["content"])
+
+        if message["role"] == "assistant":
+
+            if "query" in message:
+                with st.expander("Generated SQL"):
+                    st.code(message["query"], language="sql")
+
+            if "result" in message:
+                with st.expander("Database Result"):
+                    st.write(message["result"])
 
 
 
@@ -38,7 +50,7 @@ if question:
         {
             "role": "assistant",
             "content": response["answer"],
-            # "query": response["query"],
-            # "result": response["result"]
+            "query": response["query"],
+            "result": response["result"]
         }
     )
