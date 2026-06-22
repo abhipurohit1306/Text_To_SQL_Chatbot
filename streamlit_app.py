@@ -37,7 +37,8 @@ if question:
     }
 )
 
-    response = process_question(question)
+    with st.spinner("Generating SQL and querying database..."):
+        response = process_question(question)
     st.chat_message("assistant").write(response["answer"])
 
     with st.expander("Generated SQL"):
