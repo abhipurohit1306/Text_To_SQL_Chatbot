@@ -37,8 +37,17 @@ if question:
     }
 )
 
-    with st.spinner("Generating SQL and querying database..."):
-        response = process_question(question)
+    try:
+
+        with st.spinner("Generating SQL and querying database..."):
+            response = process_question(question)
+
+    except Exception as e:
+
+        st.error(f"Error: {str(e)}")
+
+        st.stop()
+        
     st.chat_message("assistant").write(response["answer"])
 
     with st.expander("Generated SQL"):
