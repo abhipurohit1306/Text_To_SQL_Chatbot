@@ -13,7 +13,11 @@ password = quote_plus(os.getenv("DB_PASSWORD"))
 database_schema = os.getenv("DB_NAME")
 mysql_uri = f"mysql+pymysql://{username}:{password}@{host}:{port}/{database_schema}"
 
-db = SQLDatabase.from_uri(mysql_uri,sample_rows_in_table_info = 2)
+def get_db():
+    return SQLDatabase.from_uri(
+        mysql_uri,
+        sample_rows_in_table_info=2
+    )
 
 
 #get the schema of database
@@ -24,6 +28,7 @@ def get_schema(db):
 
 
 def get_schema_metadata():
+    db = get_db()
     schema_metadata = {}
     for table_name, table in db._metadata.tables.items():
         schema_metadata[table_name] = [
@@ -34,4 +39,5 @@ def get_schema_metadata():
 
 
 def run_query(query):
+    db = get_db()
     return db.run(query)

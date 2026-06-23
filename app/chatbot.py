@@ -12,7 +12,7 @@
 from app.memory import chat_history
 from app.chains import (rewrite_chain, sql_chain, repair_chain, answer_chain)
 from app.validator import validate_sql
-from app.database import (db, get_schema, run_query)
+from app.database import run_query
 from app.memory import chat_history
 
 def process_question(question):

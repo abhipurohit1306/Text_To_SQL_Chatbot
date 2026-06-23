@@ -3,7 +3,7 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 import os
 from dotenv import load_dotenv
-from app.database import db, get_schema
+from app.database import get_db, get_schema
 from app.prompts import (prompt,answer_prompt,repair_prompt,rewrite_prompt)
 
 load_dotenv()
@@ -18,7 +18,7 @@ llm = ChatGoogleGenerativeAI(
 
 sql_chain = (
     RunnablePassthrough.assign(
-        schema=lambda _: get_schema(db)
+        schema=lambda _: get_schema(get_db())
     )
     | prompt
     | llm
