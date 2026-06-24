@@ -51,6 +51,8 @@ def validate_columns(query):
                 # Skip SQL functions
                 if "(" in column or ")" in column:
                     continue
+                if "." in column:
+                    column = column.split(".")[-1]
 
                 if column not in table_columns:
                     invalid_columns.append(column)
@@ -59,6 +61,8 @@ def validate_columns(query):
                     "valid": False,
                     "message": f"Invalid columns: {invalid_columns}"
                 }
+            print("\nSCHEMA METADATA")
+            print(schema_metadata)
     return {
         "valid": True
     }
