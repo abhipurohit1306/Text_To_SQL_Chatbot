@@ -20,52 +20,52 @@ def validate_tables(query):
     }
 
 
-def validate_columns(query):
-    schema_metadata = get_schema_metadata()
-    query_lower = query.lower()
-    if "select" not in query_lower or "from" not in query_lower:
-        return {
-            "valid": False,
-            "message": "Unable to parse query."
-        }
-    select_part = query.split("FROM")[0]
-    columns = (
-        select_part
-        .replace("SELECT", "")
-        .split(",")
-    )
-    columns = [
-        column.strip()
-        for column in columns
-    ]
-    for table, table_columns in schema_metadata.items():
-        if table.lower() in query_lower:
-            invalid_columns = []
-            for column in columns:
+# def validate_columns(query):
+#     schema_metadata = get_schema_metadata()
+#     query_lower = query.lower()
+#     if "select" not in query_lower or "from" not in query_lower:
+#         return {
+#             "valid": False,
+#             "message": "Unable to parse query."
+#         }
+#     select_part = query.split("FROM")[0]
+#     columns = (
+#         select_part
+#         .replace("SELECT", "")
+#         .split(",")
+#     )
+#     columns = [
+#         column.strip()
+#         for column in columns
+#     ]
+#     for table, table_columns in schema_metadata.items():
+#         if table.lower() in query_lower:
+#             invalid_columns = []
+#             for column in columns:
 
-                column = column.strip()
+#                 column = column.strip()
 
-                if column == "*":
-                    continue
+#                 if column == "*":
+#                     continue
 
-                # Skip SQL functions
-                if "(" in column or ")" in column:
-                    continue
-                if "." in column:
-                    column = column.split(".")[-1]
+#                 # Skip SQL functions
+#                 if "(" in column or ")" in column:
+#                     continue
+#                 if "." in column:
+#                     column = column.split(".")[-1]
 
-                if column not in table_columns:
-                    invalid_columns.append(column)
-            if invalid_columns:
-                return {
-                    "valid": False,
-                    "message": f"Invalid columns: {invalid_columns}"
-                }
-            print("\nSCHEMA METADATA")
-            print(schema_metadata)
-    return {
-        "valid": True
-    }
+#                 if column not in table_columns:
+#                     invalid_columns.append(column)
+#             if invalid_columns:
+#                 return {
+#                     "valid": False,
+#                     "message": f"Invalid columns: {invalid_columns}"
+#                 }
+#             print("\nSCHEMA METADATA")
+#             print(schema_metadata)
+#     return {
+#         "valid": True
+#     }
 
 
 def validate_sql(query):
@@ -120,9 +120,9 @@ def validate_sql(query):
 
     # COLUMN VALIDATION
 
-    column_validation = validate_columns(query)
-    if not column_validation["valid"]:
-        return column_validation
+    # column_validation = validate_columns(query)
+    # if not column_validation["valid"]:
+    #     return column_validation
 
 
     return {
