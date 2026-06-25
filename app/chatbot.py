@@ -5,8 +5,10 @@ from app.database import run_query
 from app.memory import chat_history
 from app.database import get_db, get_schema
 from app.logger import log_query
+import time
 
 def process_question(question):
+    start_time = time.perf_counter()
     standalone_question = rewrite_chain.invoke(
         {
             "chat_history": chat_history,
@@ -70,15 +72,23 @@ def process_question(question):
             "answer": answer
         }
     )
+
+    end_time = time.perf_counter()
+    execution_time = round(end_time - start_time, 3)
+    
     log_query(
         question=question,
         query=query,
-        validation_status="passed",
-        answer=answer
+        validation_status = validation["message"],
+        answer=answer,
+        execution_time=execution_time
     )
+
+    
 
     return {
         "query": query,
         "result": result,
-        "answer": answer
+        "answer": answer,
+        "execution_time": execution_time
     }
