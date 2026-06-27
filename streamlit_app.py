@@ -1,5 +1,5 @@
 import streamlit as st
-from app.chatbot import process_question
+import requests
 
 
 st.title("Text-to-SQL Chatbot")
@@ -40,7 +40,13 @@ if question:
     try:
 
         with st.spinner("Generating SQL and querying database..."):
-            response = process_question(question)
+            api_response = requests.post(
+                "http://127.0.0.1:8000/chat",
+                json={
+                    "question": question
+                }
+            )
+            data = api_response.json()
 
     except Exception as e:
 
@@ -48,19 +54,19 @@ if question:
 
         st.stop()
         
-    st.chat_message("assistant").write(response["answer"])
+    st.chat_message("assistant").write(data["answer"])
 
     with st.expander("Generated SQL"):
-        st.code(response["query"], language="sql")
+        st.code(data["query"], language="sql")
 
     with st.expander("Database Result"):
-        st.write(response["result"])
+        st.write(data["result"])
 
     st.session_state.messages.append(
         {
             "role": "assistant",
-            "content": response["answer"],
-            "query": response["query"],
-            "result": response["result"]
+            "content": data["answer"],
+            "query": data["query"],
+            "result": data["result"]
         }
     )
