@@ -44,14 +44,25 @@ if question:
                 "http://127.0.0.1:8000/chat",
                 json={
                     "question": question
-                }
+                },
+                timeout=30
             )
             data = api_response.json()
 
+    except requests.exceptions.Timeout:
+        st.error("⏳ Request timed out. Please try again.")
+        st.stop()
+
+    except requests.exceptions.ConnectionError:
+        st.error("⚠️ Unable to connect to the backend server.")
+        st.stop()
+
+    except requests.exceptions.HTTPError:
+        st.error("⚠️ Backend returned an error.")
+        st.stop()
+
     except Exception as e:
-
-        st.error(f"Error: {str(e)}")
-
+        st.error(f"Unexpected error: {str(e)}")
         st.stop()
         
     st.chat_message("assistant").write(data["answer"])

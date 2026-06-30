@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from app.models import ChatRequest
 from app.chatbot import process_question
 
+
 app = FastAPI()
 
 @app.get("/")
