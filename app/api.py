@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from app.models import ChatRequest
 from app.chatbot import process_question
 
@@ -12,3 +12,4 @@ def root():
 @app.post("/chat")
 def process(request: ChatRequest):
     return process_question(request.question)
+

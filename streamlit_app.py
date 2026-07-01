@@ -47,6 +47,9 @@ if question:
                 },
                 timeout=30
             )
+
+            api_response.raise_for_status()
+
             data = api_response.json()
 
     except requests.exceptions.Timeout:
